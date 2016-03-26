@@ -1,0 +1,9 @@
+#---------------------------------------
+#--------- PARAMETERS FILE -------------
+#---------------------------------------
+#+++++++++++++++++++++++++++++++++++++++
+#Number of cells per axis is N
+#Total number of cells is N^3
+FILE_NAME = "/home/nico/simBoxes/Box400x512_z_0_NGRID_128_D20.dens"
+OUTPUT = "/home/nico/Bk_results/Bk_eq_Box400x512_z_0_NGRID_128_D20_N2.dat"
+S_KF = 3.0
