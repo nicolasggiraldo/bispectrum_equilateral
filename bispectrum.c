@@ -33,6 +33,7 @@ int main(int argc, char *argv[]){
   long int Nk1;             // Number of elements in array q1
   long int Ntri;            // Number of counted triangles for bispectrum estimation
   double Pk1;               // Power spectrum at k1
+  //double Pk1_Error;         // Power spectrum at k1
   double I[2];              /* Sum of elements (denConk1*denConk1*denConk1) 
 			       which form a triangle. Because denConk1 is a 
 			       complex value the sum is also complex */
@@ -41,8 +42,10 @@ int main(int argc, char *argv[]){
 			       quantity but as the avarage of density constrast
 			       is taken the imaginary part goes to zero (see 
 			       Gil-Marin et al. 2012, J. Cosm. Astrop. Phys) */
+  //double Bk_Error;             
   double Qk;                /* Reduced bispectrum, this value will be evaluated
 			       with the real part of the bispectrum */
+  //double Qk_Error;
   double Bk_shotnoise;      /* Bispectrum shotnoise. Bispectrum shot noise emerge 
 			       as an effect of discretization of positions */
   double kMag;              /* Magnitude of the wavenumber vector */
@@ -53,7 +56,7 @@ int main(int argc, char *argv[]){
 			       k-position convention */
   int indexcord[2];
   int m3[3];
-  long int posTri;          // Number of posible triangles
+  //long int posTri;          // Number of posible triangles
 
   /*
   gsl_rng *r=NULL;
@@ -131,6 +134,7 @@ int main(int argc, char *argv[]){
   printf("\n-----------------------------------------------\n");
   printf("Fourier Transform succes.\n");
   fftw_free(denConX);
+  fftw_destroy_plan(forwardPlan);
 
   /* Position array for storing in the densityContrast  */
   kpos = (double *) calloc(GV.NGRID, sizeof(double));
@@ -162,7 +166,9 @@ int main(int argc, char *argv[]){
   indexcord[MIN] = -(GV.NGRID/2);
   indexcord[MAX] =  (GV.NGRID/2 - 1);
   
-  q1 = (struct densityContrast *) calloc( GV.NGRID3, sizeof(struct densityContrast) );
+  //q1 = (struct densityContrast *) calloc( GV.NGRID3/4, sizeof(struct densityContrast) );
+  q1 = (struct densityContrast *) calloc( floor(3 * M_PI * GV.NGRID * GV.NGRID * GV.S_KF), 
+					  sizeof(struct densityContrast) );
   if(q1 == NULL){
     printf("\n***********************************");
     printf("***********************************\n");
@@ -216,14 +222,15 @@ int main(int argc, char *argv[]){
   fprintf(fout,"\n");
 
   fprintf(fout,"#%19s %20s %20s %20s %20s %20s %20s %20s %20s\n",
-	  "k", "P(k)", "Re[B(k)]", "Im[B(k)]", "Q(k)", "Ntri", "Nk", "Re[I]", "Im[I]");
+	  "k", "P(k)", "Re[B(k)]", "Im[B(k)]", "Q(k)", 
+	  "Ntri", "Nk", "Re[I]", "Im[I]");
 
   /* Lineal binning */
   k1 = GV.DELTA_K;
   
   //while(k3 <= GV.KN){
   while( k1 <= GV.KN ){
-    
+    printf("-----------------------------------------------\n");
     printf("k1 = %lf\n", k1);
     fflush(stdout);
     
@@ -234,9 +241,10 @@ int main(int argc, char *argv[]){
 	for(k=0; k<GV.NGRID; k++){
 	  
 	  kMag = VECTORMAG(kpos[i],kpos[j],kpos[k]);
-	  id_cell = INDEX(i,j,k);
 	  
 	  if( ( k1-GV.DELTA_K*0.5 < kMag ) && ( kMag < k1+GV.DELTA_K*0.5 ) ){
+
+	    id_cell = INDEX(i,j,k);
 	    
 	    q1[Nk1].id   = id_cell;
 	    q1[Nk1].kMag = kMag;
@@ -264,10 +272,11 @@ int main(int argc, char *argv[]){
     I[IM] = 0.0;
     Ntri  = 0L;
     
-    posTri = ( Nk1 * (Nk1-1) * (Nk1-2) ) / 6;
-    printf("Elementos en Nk1 %ld\nPosibles triangulos=%ld\n", Nk1, posTri);
+    //posTri = ( Nk1 * (Nk1-1) * (Nk1-2) ) / 6;
+    //printf("Elementos en Nk1 %ld\nPosibles triangulos=%ld\n", Nk1, posTri);
+    printf("Elementos en Nk1 %ld\n", Nk1);
     
-    //for(id_cell=0L; id_cell<posTri; id_cell+=1L){
+    
     for(   rand_i=0;        rand_i<Nk1-1; rand_i++){
       for( rand_j=rand_i+1; rand_j<Nk1;   rand_j++){
 	
@@ -298,22 +307,18 @@ int main(int argc, char *argv[]){
 	  if( ( k1-GV.DELTA_K*0.5 < kMag ) && ( kMag < k1+GV.DELTA_K*0.5 ) ){
 	    
 	    id_cell = INDEX(i,j,k);
-	    
-	    //if( ( (q1[rand_i].triplex[X] + q1[rand_j].triplex[X] + q1[rand_k].triplex[X]) == 0 ) &&
-	    //    ( (q1[rand_i].triplex[Y] + q1[rand_j].triplex[Y] + q1[rand_k].triplex[Y]) == 0 ) &&
-	    //    ( (q1[rand_i].triplex[Z] + q1[rand_j].triplex[Z] + q1[rand_k].triplex[Z]) == 0 ) ){
 	
-	    I[RE] += ( + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
-		       - denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][1]
-		       - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
-		       - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][0] );
+	    I[RE] += (+ denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
+		      - denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][1]
+		      - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
+		      - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][0] );
 	    
-	    I[IM] += ( + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
-		       + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][0]
-		       + denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
-		       - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][1] );
+	    I[IM] += (+ denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
+		      + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][0]
+		      + denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
+		      - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][1] );
 	    
-	    Ntri    += 1L;
+	    Ntri  += 1L;
 	  
 	  }// if
 	}// if
@@ -322,9 +327,8 @@ int main(int argc, char *argv[]){
 	//}// for rand_k
       }// for rand_j
     }// for rand_i
-    //}// for id_cell
     
-    printf("Valor de I real despues del ciclo: %lf", I[RE]);
+    //printf("Valor de I real despues del ciclo: %lf", I[RE]);
     printf("Numero de triangulos: %ld \n", Ntri);
     
     if(Ntri==0){ // if Ntri==0, then Bk becomes in a NaN
@@ -332,12 +336,11 @@ int main(int argc, char *argv[]){
       continue;
     }
     
-    // Integral estimation by Monte Carlo
+    // Integral estimation
     I[RE] *= (1.0/Ntri);
     I[IM] *= (1.0/Ntri);
-    //I *= (GV.DELTA_K*GV.DELTA_K*GV.DELTA_K);
 
-    printf("Valor de I real despues de multiplicar: %lf", I[RE]);
+    printf("Valor de I real: %lf\n", I[RE]);
 
     // Discrete bispectrum value
     Bk[RE] = I[RE] * (GV.SIM_VOL/(1.0*GV.NGRID3)) * (GV.SIM_VOL/(1.0*GV.NGRID3)) * (1.0/(1.0*GV.NGRID3));
@@ -356,9 +359,14 @@ int main(int argc, char *argv[]){
     /* Estimating dimensionless bispectrum */
     Qk = Bk[RE] / ( 3.0*(Pk1*Pk1) );
 
+    //Pk1_Error = sqrt( (GV.KF*GV.KF*GV.KF)/(4.0*M_PI*k1*k1*GV.DELTA_K) ) * Pk1;
+    //Bk_Error  = sqrt( (GV.KF*GV.KF*GV.KF)/(4.0*M_PI*k1*k1*GV.DELTA_K) ) * Pk1;
+
+
     /* Printing bispectrum data  */
     fprintf(fout,"%20lf %20e %20e %20e %20e %20ld %20ld %20e %20e\n",
-	    k1, Pk1, Bk[RE], Bk[IM], Qk, Ntri, Nk1, I[RE], I[IM]);
+	    k1, Pk1, Bk[RE], Bk[IM], Qk, 
+	    Ntri, Nk1, I[RE], I[IM]);
     fflush(fout);
     
     k1 += GV.KF;
@@ -376,7 +384,6 @@ int main(int argc, char *argv[]){
   free(indexpos);
   fftw_free(denConK);
   free(q1);
-  fftw_destroy_plan(forwardPlan);
   
   return 0;
 }
