@@ -4,7 +4,7 @@
  * Reads the parameter file in which are the main parameters 
  * necessary to run the code.
  *
- * The information loaded are: 
+ * The information loaded in the same order are: 
  * FILE_NAME:      File name path of the GADGET binary file.
  * OUTPUT:         Path of the output file.
  * DELTA_K:        Width of space sampled for the calculation of 
@@ -12,11 +12,6 @@
  *                 of the fundamental frequency kF. The value
  *                 should be bigger or equal than 1.
  * 
- * The parameter file is read with the help of the library libconfig, 
- * for more information of the library use go to the manual:
- * http://www.hyperrealm.com/libconfig/libconfig_manual.html
- *
- *
  *  param_file_name: String with the name of the parameter file.
  *
  *  returns: Integer value.
@@ -27,28 +22,62 @@
  */
 int read_parameters(char param_file_name[], int rank){
 
-  config_t cfg;            /* Returns all parameters in this structure */
-  const char *str1, *str2; /* Going to be used to read strings variables */
+  FILE *cfg=NULL;         /* Stream to the parameter (config) file */
+  int len = 200;
+  char *buf=NULL, *buf1=NULL, *buf2=NULL; /* Going to be used to read strings variables */
+  char *dumb;
   
   
-  /*Initialization */
-  config_init(&cfg);
-  
-  /* Read the file. If there is an error, report it and exit. */
-  if(!config_read_file(&cfg, param_file_name)){
-    printf("%s:%d - %s\n",
-	   config_error_file(&cfg),
-	   config_error_line(&cfg),
-	   config_error_text(&cfg));
-    config_destroy(&cfg);
+  if( (cfg=fopen(param_file_name,"r"))==NULL ){
+    printf("%s not found.\n", param_file_name);
     // Value -1 means there is an error loading the param file
     return -1;
   }
+
+  buf  = (char *) malloc( len*sizeof(char) );
+  buf1 = (char *) malloc( len*sizeof(char) );
+  buf2 = (char *) malloc( len*sizeof(char) );
+
+  /* Skipping first six lines  */
+  dumb=fgets(buf, len, cfg);
+  dumb=fgets(buf, len, cfg);
+  dumb=fgets(buf, len, cfg);
+  dumb=fgets(buf, len, cfg);
+  dumb=fgets(buf, len, cfg);
+  dumb=fgets(buf, len, cfg);
   
-  /* Get the value of the width sample in terms of the 
-     fundamental frequency kF. */
-  if( config_lookup_float(&cfg, "S_KF", &(GV.S_KF) ) ){
-    // Checking if NGRID value is valid, that is, NGRID > 0
+  /* Reading FILE_NAME parameter */
+  dumb=fgets(buf,len,cfg);
+  if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
+    printf("No 'FILE_NAME' setting in configuration file.\n");
+    return -2;
+  }
+  else{
+    GV.FILE_NAME = strdup(buf2);
+    if(rank==0)
+      printf("Reading from File: %s\n", GV.FILE_NAME);
+  }
+  
+  /* Reading OUTPUT parameter */
+  dumb=fgets(buf,len,cfg);
+  if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
+    printf("No 'OUTPUT' setting in configuration file.\n");
+    return -2;
+  }
+  else{
+    GV.OUTPUT = strdup(buf2);
+    if(rank==0)
+      printf("Output File: %s\n", GV.OUTPUT);
+  }
+      
+  /* Reading S_KF parameter */
+  dumb=fgets(buf,len,cfg);
+  if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
+     printf("No 'S_KF' setting in configuration file.\n");
+    return -2;
+  }
+  else{
+    GV.S_KF=atof(buf2);
     if(GV.S_KF >= 1.0){
       if(rank==0)
 	printf("Binning width in terms of the fundamental frequency kF: %lf\n", GV.S_KF);
@@ -58,55 +87,32 @@ int read_parameters(char param_file_name[], int rank){
       return -2;
     }
   }
-  else{
-    printf("No 'S_KF' setting in configuration file.\n");
-    return -2;
-  }
-  
-  /* Get the configuration file name. */
-  if(config_lookup_string(&cfg, "FILE_NAME", &str1)){
-    GV.FILE_NAME = strdup(str1);
-    if(rank==0)
-      printf("Reading from File: %s\n", GV.FILE_NAME);
-  }
-  else{
-    printf("No 'FILE_NAME' setting in configuration file.\n");
-    return -2;
-  }
-  
-  /* Get the configuration output. */
-  if(config_lookup_string(&cfg, "OUTPUT", &str2)){
-    GV.OUTPUT = strdup(str2);
-    if(rank==0)
-      printf("Output File: %s\n", GV.OUTPUT);
-  }
-  else{
-    printf("No 'OUTPUT' setting in configuration file.\n");
-    return -2;
-  }
-  
-  
-  config_destroy(&cfg);
-  
-  
+
+  if(dumb==NULL){}
+      
+  fclose(cfg);
+  free(buf);
+  free(buf1);
+  free(buf2);
+
   return 0;
 }
 
 
 
-/*                                                                                                                      
- * Function:  readBinaryFile                                                                                      
- * --------------------                                                                                                 
+/*
+ * Function:  readBinaryFile
+ * --------------------                  
  * Reads a binary file with the information of the cell and store 
  * the information in the data structure variable *part* it also 
  * returns the total number of particles.
- *                                                                                                                      
- *  There are no arguments in the routiene.                                                                             
- *                                                                                                                      
- *  returns: Integer value.                                                                                             
- *            0 --> There is no error.                                                                                  
+ * 
+ *  There are no arguments in the routiene.              
+ *
+ *  returns: Integer value.               
+ *            0 --> There is no error. 
  *           -1 --> There is an error loading file
- *           -2 --> Structure cell could not be allocated.    
+ *           -2 --> Structure cell could not be allocated. 
  */
 int readBinaryFile(int rank){
 

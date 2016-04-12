@@ -1,7 +1,6 @@
 #include       <stdio.h>
 #include      <stdlib.h>
 #include        <math.h>
-#include   <libconfig.h>
 #include       <fftw3.h>
 #include      <string.h>
 #include <gsl/gsl_rng.h>
@@ -93,7 +92,7 @@ int main(int argc, char *argv[]){
   case -1 :
     printf("\n***********************************");
     printf("***********************************\n");
-    printf("Error: Bad path to the parameter file.\n" );
+    printf("Error: Bad path (or name) to the parameter file.\n" );
     printf("***********************************");
     printf("***********************************\n\n");
     exit(0);
