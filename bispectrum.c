@@ -191,8 +191,8 @@ int main(int argc, char *argv[]){
   indexcord[MIN] = -(GV.NGRID/2);
   indexcord[MAX] =  (GV.NGRID/2 - 1);
   
-  q1 = (struct densityContrast *) calloc( floor(3 * M_PI * GV.NGRID * GV.NGRID * GV.S_KF), 
-  sizeof(struct densityContrast) );
+  q1 = (struct densityContrast *) calloc( floor(3 * M_PI * GV.NGRID * GV.NGRID * GV.S_KF * 0.5), 
+					  sizeof(struct densityContrast) );
   if(q1 == NULL){
     printf("\n***********************************");
     printf("***********************************\n");
@@ -210,12 +210,11 @@ int main(int argc, char *argv[]){
   
   Nbins = (int) ceil( GV.KN / GV.DELTA_K );
   
-  if(rank == 0)
-    {
-      printf("\n-----------------------------------------------\n");
-      printf(" Domain decomposition... \n");
-      printf(" %d Total bins\n", Nbins); fflush(stdout);
-    }
+  if(rank == 0){
+    printf("\n-----------------------------------------------\n");
+    printf(" Domain decomposition... \n");
+    printf(" %d Total bins\n", Nbins); fflush(stdout);
+  }
   
   /* domain decomposition */
   // building bins array
@@ -247,37 +246,36 @@ int main(int argc, char *argv[]){
   
 
   i=0;
-  for(l=Nbins-1; l>=0; l--)
-    {
-      taskBin[l] = i%size;
-      
-      bindata[l].k1 = (l+0.5)*GV.DELTA_K;
-      bindata[l].Nk1 = 0;
-      bindata[l].Pk1 = 0.0;         
-      bindata[l].Pk1_Error = 0.0;   
-      bindata[l].I[RE] = 0.0; 
-      bindata[l].I[IM] = 0.0; 
-      bindata[l].Ntri = 0;       
-      bindata[l].Bk[RE] = 0.0;
-      bindata[l].Bk[IM] = 0.0;
-      bindata[l].Bk_Error = 0.0; 
-      bindata[l].Qk = 0.0;       
-      bindata[l].Qk_Error = 0.0;
-      bindata[l].Bk_shotnoise = 0.0;
-      
-      if(rank == 0){
-	printf("rank %d has bin %d (k=%f)\n", 
-	       taskBin[l], l, bindata[l].k1); fflush(stdout);
-      }
-      
-      i++;
+  for(l=Nbins-1; l>=0; l--){
+    taskBin[l] = i%size;
+    
+    bindata[l].k1 = (l+0.5)*GV.DELTA_K;
+    bindata[l].Nk1 = 0;
+    bindata[l].Pk1 = 0.0;         
+    bindata[l].Pk1_Error = 0.0;   
+    bindata[l].I[RE] = 0.0; 
+    bindata[l].I[IM] = 0.0; 
+    bindata[l].Ntri = 0;       
+    bindata[l].Bk[RE] = 0.0;
+    bindata[l].Bk[IM] = 0.0;
+    bindata[l].Bk_Error = 0.0; 
+    bindata[l].Qk = 0.0;       
+    bindata[l].Qk_Error = 0.0;
+    bindata[l].Bk_shotnoise = 0.0;
+    
+    if(rank == 0){
+      printf("rank %d has bin %d (k=%f)\n", 
+	     taskBin[l], l, bindata[l].k1); fflush(stdout);
     }
+    
+    i++;
+  }
   
   if(rank==0){
     printf("\n-----------------------------------------------\n");
     printf("Bispectrum calculation\n");
   }
-
+  
   MPI_Barrier(MPI_COMM_WORLD);
   
   for(l=0; l<Nbins; l++){
@@ -291,13 +289,16 @@ int main(int argc, char *argv[]){
     //bindata[l].Pk1 = 0.0;
     //bindata[l].Nk1 = 0L;
     for(i=0; i<GV.NGRID; i++){
+      if( i == (GV.NGRID/2) )
+	continue;
       for(j=0; j<GV.NGRID; j++){
-	for(k=0; k<GV.NGRID; k++){
+	if( j == (GV.NGRID/2) )
+	  continue;
+	for(k=1; k<GV.NGRID/2; k++){
 	  
 	  kMag = VECTORMAG(kpos[i],kpos[j],kpos[k]);
 	  
-	  if( ( bindata[l].k1-GV.DELTA_K*0.5 < kMag ) && 
-	      ( kMag < bindata[l].k1+GV.DELTA_K*0.5 ) ){
+	  if( ( bindata[l].k1-GV.DELTA_K*0.5 < kMag ) && ( kMag < bindata[l].k1+GV.DELTA_K*0.5 ) ){
 	    
 	    id_cell = INDEX(i,j,k);
 	    
@@ -310,7 +311,7 @@ int main(int argc, char *argv[]){
 	    
 	    bindata[l].Nk1 += 1L;
   
-	    bindata[l].Pk1 += COMPLEXMAG(denConK, id_cell);
+	    bindata[l].Pk1 += COMPLEXMAG(denConK, id_cell) ;
     
 	  }// if bindata[l].k1-GV.DELTA_K*0.5 < kMag < bindata[l].k1+GV.DELTA_K*0.5 ) ){
 	  
@@ -346,9 +347,9 @@ int main(int argc, char *argv[]){
 	m3[Y] = - q1[rand_i].triplex[Y] - q1[rand_j].triplex[Y];
 	m3[Z] = - q1[rand_i].triplex[Z] - q1[rand_j].triplex[Z];
 	
-	if( (indexcord[MIN]<=m3[X] && m3[X]<=indexcord[MAX]) && 
-	    (indexcord[MIN]<=m3[Y] && m3[Y]<=indexcord[MAX]) && 
-	    (indexcord[MIN]<=m3[Z] && m3[Z]<=indexcord[MAX]) ){
+	if( fabs(m3[X])<=indexcord[MAX] && 
+	    fabs(m3[Y])<=indexcord[MAX] && 
+	    fabs(m3[Z])<=indexcord[MAX] ){
 	  
 	  i = (m3[X]>=0) ? m3[X] : GV.NGRID+m3[X];
 	  j = (m3[Y]>=0) ? m3[Y] : GV.NGRID+m3[Y];
@@ -356,20 +357,23 @@ int main(int argc, char *argv[]){
 	  
 	  kMag = VECTORMAG(kpos[i],kpos[j],kpos[k]);
 	    
-	  if( ( bindata[l].k1-GV.DELTA_K*0.5 < kMag ) && 
-	      ( kMag < bindata[l].k1+GV.DELTA_K*0.5 ) ){
-	        
+	  if( ( bindata[l].k1-GV.DELTA_K*0.5 < kMag ) && ( kMag < bindata[l].k1+GV.DELTA_K*0.5 ) ){
+	    
 	    id_cell = INDEX(i,j,k);
 	    
 	    bindata[l].I[RE] += (+ denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
 				 - denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][1]
 				 - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
 				 - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][0] );
-	        
+	    
+	    /*
 	    bindata[l].I[IM] += (+ denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][0] * denConK[id_cell][1]
-				 + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][0]
-				 + denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
-				 - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][1] );
+	    + denConK[q1[rand_i].id][0] * denConK[q1[rand_j].id][1] * denConK[id_cell][0]
+	    + denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][0] * denConK[id_cell][0]
+	    - denConK[q1[rand_i].id][1] * denConK[q1[rand_j].id][1] * denConK[id_cell][1] );
+	    */
+
+	    bindata[l].I[IM] += 0.0;
 	        
 	    bindata[l].Ntri  += 1L;
 	      
