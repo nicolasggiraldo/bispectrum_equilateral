@@ -189,7 +189,7 @@ int main(int argc, char *argv[]){
   /* These are the minimum and maximum integer vectors 
      possibles according to the grid taken  */
   indexcord[MIN] = -(GV.NGRID/2);
-  indexcord[MAX] =  (GV.NGRID/2 - 1);
+  indexcord[MAX] =  (GV.NGRID/2);
   
   q1 = (struct densityContrast *) calloc( floor(3 * M_PI * GV.NGRID * GV.NGRID * GV.S_KF * 0.5), 
 					  sizeof(struct densityContrast) );
@@ -289,12 +289,8 @@ int main(int argc, char *argv[]){
     //bindata[l].Pk1 = 0.0;
     //bindata[l].Nk1 = 0L;
     for(i=0; i<GV.NGRID; i++){
-      if( i == (GV.NGRID/2) )
-	continue;
       for(j=0; j<GV.NGRID; j++){
-	if( j == (GV.NGRID/2) )
-	  continue;
-	for(k=1; k<GV.NGRID/2; k++){
+	for(k=1; k<(GV.NGRID/2+1); k++){
 	  
 	  kMag = VECTORMAG(kpos[i],kpos[j],kpos[k]);
 	  
@@ -350,6 +346,12 @@ int main(int argc, char *argv[]){
 	if( fabs(m3[X])<=indexcord[MAX] && 
 	    fabs(m3[Y])<=indexcord[MAX] && 
 	    fabs(m3[Z])<=indexcord[MAX] ){
+
+	  if(m3[Z]==indexcord[MIN]){
+	    m3[X] *= -1;
+	    m3[Y] *= -1;
+	    m3[Z] *= -1;
+	  }
 	  
 	  i = (m3[X]>=0) ? m3[X] : GV.NGRID+m3[X];
 	  j = (m3[Y]>=0) ? m3[Y] : GV.NGRID+m3[Y];
