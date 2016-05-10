@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
   ////////////////////////////////
   if(rank == 0){
     /* Do forward FFT */
-    fftw_execute(forwardPlan);
+    fftw_execute(forwardPlan);	  
     printf("\n-----------------------------------------------\n");
     printf("Fourier Transform succes.\n");
     fftw_free(denConX);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]){
   MPI_Barrier(MPI_COMM_WORLD);
   
   /* Sending all the deltak grid to the others processors */
-  chunk = GV.NGRID3/sizeof(fftw_complex);
+  chunk = (GV.NGRID3)/sizeof(fftw_complex);
   for(l=0; l<sizeof(fftw_complex); l++)
     MPI_Bcast(denConK+(l*chunk), chunk*sizeof(fftw_complex), MPI_BYTE, 0, MPI_COMM_WORLD); 
   
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]){
 	    q1[bindata[l].Nk1].triplex[Y] = indexpos[j];
 	    q1[bindata[l].Nk1].triplex[Z] = indexpos[k];
 	    
-	    bindata[l].Nk1 += 1L;
+	    bindata[l].Nk1++;
   
 	    bindata[l].Pk1 += COMPLEXMAG(denConK, id_cell) ;
     
@@ -345,12 +345,6 @@ int main(int argc, char *argv[]){
 	    fabs(m3[Y])<=indexcord[MAX] && 
 	    fabs(m3[Z])<=indexcord[MAX] ){
 
-	  if(m3[Z]==indexcord[MIN]){
-	    m3[X] *= -1;
-	    m3[Y] *= -1;
-	    m3[Z] *= -1;
-	  }
-	  
 	  i = (m3[X]>=0) ? m3[X] : GV.NGRID+m3[X];
 	  j = (m3[Y]>=0) ? m3[Y] : GV.NGRID+m3[Y];
 	  k = (m3[Z]>=0) ? m3[Z] : GV.NGRID+m3[Z];
