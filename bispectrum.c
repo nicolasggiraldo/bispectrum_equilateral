@@ -273,7 +273,8 @@ int main(int argc, char *argv[]){
   
   if(rank==0){
     printf("\n-----------------------------------------------\n");
-    printf("Bispectrum calculation\n");
+    printf("Bispectrum calculation");
+    printf("\n-----------------------------------------------\n");
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -282,12 +283,9 @@ int main(int argc, char *argv[]){
     if(rank != taskBin[l])
       continue;
     
-    printf("-----------------------------------------------\nrank:%3d, k1 = %lf\n", 
-	   rank, bindata[l].k1);
+    printf("rank:%3d, k1 = %lf\n", rank, bindata[l].k1);
     fflush(stdout);
     
-    //bindata[l].Pk1 = 0.0;
-    //bindata[l].Nk1 = 0L;
     for(i=0; i<GV.NGRID; i++){
       for(j=0; j<GV.NGRID; j++){
 	for(k=1; k<(GV.NGRID/2+1); k++){
@@ -440,8 +438,9 @@ int main(int argc, char *argv[]){
   
   
   if(rank==0){
-    printf("\n");
-    printf("Sending results to root process\n");
+    printf("\n-----------------------------------------------\n");
+    printf("Sending results to root process");
+    printf("\n-----------------------------------------------\n");
     fflush(stdout);
   }
   MPI_Barrier(MPI_COMM_WORLD);

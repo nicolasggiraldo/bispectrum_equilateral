@@ -38,16 +38,8 @@ int read_parameters(char param_file_name[], int rank){
   buf1 = (char *) malloc( len*sizeof(char) );
   buf2 = (char *) malloc( len*sizeof(char) );
 
-  /* Skipping first six lines  */
-  dumb=fgets(buf, len, cfg);
-  dumb=fgets(buf, len, cfg);
-  dumb=fgets(buf, len, cfg);
-  dumb=fgets(buf, len, cfg);
-  dumb=fgets(buf, len, cfg);
-  dumb=fgets(buf, len, cfg);
-  
   /* Reading FILE_NAME parameter */
-  dumb=fgets(buf,len,cfg);
+  do{dumb=fgets(buf, len, cfg);}while(dumb[0]=='#');
   if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
     printf("No 'FILE_NAME' setting in configuration file.\n");
     return -2;
@@ -59,7 +51,7 @@ int read_parameters(char param_file_name[], int rank){
   }
   
   /* Reading OUTPUT parameter */
-  dumb=fgets(buf,len,cfg);
+  do{dumb=fgets(buf, len, cfg);}while(dumb[0]=='#');
   if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
     printf("No 'OUTPUT' setting in configuration file.\n");
     return -2;
@@ -71,9 +63,9 @@ int read_parameters(char param_file_name[], int rank){
   }
       
   /* Reading S_KF parameter */
-  dumb=fgets(buf,len,cfg);
+  do{dumb=fgets(buf, len, cfg);}while(dumb[0]=='#');
   if( sscanf(buf,"%s%s",buf1,buf2) < 2 ){
-     printf("No 'S_KF' setting in configuration file.\n");
+    printf("No 'S_KF' setting in configuration file.\n");
     return -2;
   }
   else{
@@ -87,14 +79,14 @@ int read_parameters(char param_file_name[], int rank){
       return -2;
     }
   }
-
+  
   if(dumb==NULL){}
-      
+  
   fclose(cfg);
   free(buf);
   free(buf1);
   free(buf2);
-
+  
   return 0;
 }
 
